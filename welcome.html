@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Welcome | Key To Mind</title>
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #a1c4fd, #c2e9fb, #f9d1d1, #fad0c4);
+  background-size: 400% 400%;
+  animation: gradientMove 15s ease infinite;
+  margin: 0;
+  color: #3b2e5a;
+  text-align: center;
+}
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+}
+p {
+  max-width: 600px;
+  line-height: 1.6;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+button {
+  background: linear-gradient(135deg, #9c27b0, #673ab7);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+  transition: all 0.3s ease;
+}
+button:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #ba68c8, #7e57c2);
+}
+footer {
+  position: absolute;
+  bottom: 20px;
+  font-size: 0.9rem;
+  color: rgba(59, 46, 90, 0.8);
+}
+video {
+  display: none; /* keep camera hidden */
+}
+#status {
+  margin-top: 15px;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<h1>🧠 Welcome to Key To Mind</h1>
+<p>Your personal AI wellness companion — helping you manage stress, emotions, and mindfulness through fun games, exercises, and intelligent feedback.</p>
+
+<button onclick="window.location.href='camera.html'">🎥 Start Emotion Analysis</button>
+<p id="status">Initializing camera for smile detection...</p>
+
+<video id="video" width="320" height="240" autoplay muted></video>
+
+<footer>© 2025 Key To Mind — Developed with ❤️ for mental wellness</footer>
+
+<!-- face-api.js -->
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+const video = document.getElementById('video');
+const statusText = document.getElementById('status');
+
+let smileDetected = false;
+
+// Load face-api models
+async function loadModels() {
+  statusText.textContent = "Loading AI models...";
+  await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/models');
+  await faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/models');
+  startVideo();
+}
+
+// Start webcam (works on localhost / HTTPS)
+async function startVideo() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    video.srcObject = stream;
+    statusText.textContent = "Camera active — smile to continue 😊";
+  } catch (err) {
+    statusText.textContent = "⚠️ Please allow camera access to continue.";
+  }
+}
+
+// Detect smile
+video.addEventListener('play', () => {
+  const canvas = faceapi.createCanvasFromMedia(video);
+  canvas.style.display = "none"; // hide canvas too
+  document.body.append(canvas);
+  const displaySize = { width: video.width, height: video.height };
+  faceapi.matchDimensions(canvas, displaySize);
+
+  setInterval(async () => {
+    const detection = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+      .withFaceExpressions();
+
+    if (detection) {
+      const happyValue = detection.expressions.happy || 0;
+      if (happyValue > 0.85 && !smileDetected) {
+        smileDetected = true;
+        statusText.textContent = "😄 Smile detected! Redirecting...";
+        function goToIndex(){
+  // Resolves relative to the current page (handles subfolders)
+  const url = new URL('index.html', window.location.href).href;
+
+  // Try a few ways, spaced out, so at least one succeeds
+  window.location.href = url;                   // 1) standard
+  setTimeout(()=> window.location.assign(url), 600);  // 2) assign fallback
+  setTimeout(()=> {                                  // 3) anchor click fallback
+    const a = document.createElement('a');
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+  }, 1200);
+}
+
+setTimeout(goToIndex, 1500);
+      }
+    }
+  }, 500);
+});
+
+// Initialize
+loadModels();
+</script>
+
+</body>
+</html>

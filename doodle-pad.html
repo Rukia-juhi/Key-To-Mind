@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎨 Rainbow Doodle Pad</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, #a1c4fd, #c2e9fb, #f9d1d1, #fad0c4);
+    background-size: 400% 400%;
+    animation: gradientBG 20s ease infinite;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  @keyframes gradientBG {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+  }
+
+  h1 {
+    color: #3b2e5a;
+    margin: 15px;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    text-align: center;
+  }
+
+  #doodleCanvas {
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    background: radial-gradient(circle at top left, #fff5e6, #f0f0f0);
+    touch-action: none;
+    cursor: crosshair;
+    max-width: 95%;
+    height: auto;
+  }
+
+  .controls {
+    margin: 12px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+
+  label {
+    font-weight: 500;
+    color: #3b2e5a;
+  }
+
+  button, select {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: 0.3s;
+  }
+
+  button:hover, select:hover {
+    transform: scale(1.05);
+  }
+
+  #clearBtn {
+    background: #9c27b0;
+    color: #fff;
+  }
+
+  #clearBtn:hover {
+    background: #6a1b9a;
+  }
+
+  #brushSize {
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎨 Zen Rainbow Doodle Pad</h1>
+<canvas id="doodleCanvas" width="800" height="500"></canvas>
+
+<div class="controls">
+  <label for="brushSize">Brush Size:</label>
+  <select id="brushSize">
+    <option value="2">2px</option>
+    <option value="4" selected>4px</option>
+    <option value="6">6px</option>
+    <option value="8">8px</option>
+    <option value="12">12px</option>
+    <option value="20">20px</option>
+  </select>
+  <button id="clearBtn">Clear</button>
+</div>
+
+<script>
+const canvas = document.getElementById('doodleCanvas');
+const ctx = canvas.getContext('2d');
+
+let drawing = false;
+let brushSize = parseInt(document.getElementById('brushSize').value);
+let hue = 0; // for rainbow effect
+
+// Update brush size when changed
+document.getElementById('brushSize').addEventListener('change', e => {
+  brushSize = parseInt(e.target.value);
+});
+
+// Clear button
+document.getElementById('clearBtn').addEventListener('click', () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+// Mouse events
+canvas.addEventListener('mousedown', e => { drawing = true; draw(e); });
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseout', () => drawing = false);
+canvas.addEventListener('mousemove', draw);
+
+// Touch events for mobile
+canvas.addEventListener('touchstart', e => { drawing = true; draw(e.touches[0]); });
+canvas.addEventListener('touchend', () => drawing = false);
+canvas.addEventListener('touchmove', e => { draw(e.touches[0]); e.preventDefault(); }, {passive:false});
+
+// Draw rainbow brush
+function draw(e) {
+  if(!drawing) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  // Rainbow brush color
+  ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+  ctx.beginPath();
+  ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+  ctx.fill();
+
+  hue += 2;
+  if (hue >= 360) hue = 0;
+}
+</script>
+
+</body>
+</html>

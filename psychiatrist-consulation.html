@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Psychiatrist Consultation — Sliding Doctors & Real-time Slots</title>
+<style>
+  :root{
+    --accent:#2b6ed5;
+    --accent-2:#e8f0ff;
+    --card-bg:#fbfcff;
+    --muted:#6b7785;
+  }
+  body{
+    margin:0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg,#f6f9ff 0%, #ffffff 60%);
+    color:#1f2937;
+    padding:28px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{
+    max-width:1100px;
+    margin:0 auto;
+    background: #fff;
+    border-radius:14px;
+    padding:22px;
+    box-shadow: 0 12px 40px rgba(20,30,60,0.08);
+  }
+
+  h1{
+    margin:0 0 8px 0;
+    font-size:20px;
+    color:#0f1724;
+    text-align:center;
+  }
+
+  p.lead{
+    margin:0 0 18px 0;
+    color:var(--muted);
+    text-align:center;
+  }
+
+  /* slider area */
+  .slider-wrap{
+    position:relative;
+    margin: 6px 0 18px 0;
+  }
+
+  .arrow{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    width:40px;height:40px;border-radius:8px;
+    background:rgba(15,23,42,0.04); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; z-index:30; border:1px solid rgba(15,23,42,0.04);
+  }
+  .arrow.left{ left:-8px;}
+  .arrow.right{ right:-8px;}
+
+  .doctor-track{
+    display:flex;
+    gap:18px;
+    overflow-x:auto;
+    padding:14px 12px;
+    scroll-behavior:smooth;
+    scrollbar-width: thin;
+  }
+  .doctor-track::-webkit-scrollbar{ height:10px; }
+  .doctor-track::-webkit-scrollbar-thumb{ background:rgba(15,23,42,0.08); border-radius:6px; }
+
+  .doctor-card{
+    min-width:170px;
+    max-width:170px;
+    background:var(--card-bg);
+    border-radius:12px;
+    padding:12px;
+    box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+    text-align:center;
+    cursor:pointer;
+    transition: transform 220ms cubic-bezier(.2,.9,.3,1), box-shadow 180ms;
+    border:2px solid transparent;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .doctor-card:hover{ transform:translateY(-6px); box-shadow: 0 12px 30px rgba(15,23,42,0.10); }
+  .doctor-card.selected{ border-color:var(--accent); background:var(--accent-2); }
+  .doctor-avatar{
+    width:86px;height:86px;border-radius:50%;
+    margin:4px auto 8px; object-fit:cover; border:3px solid #fff; box-shadow:0 6px 18px rgba(15,23,42,0.06);
+  }
+  .doctor-name{ font-weight:600; font-size:14px; margin:6px 0 2px; color:#062033; text-align:center; }
+  .doctor-spec{ font-size:12px; color:var(--muted); margin-bottom:8px; text-align:center; }
+
+  .meta-row{ display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted); margin-top:6px; width:100%; }
+  .mini { font-size:11px; color:#34495e; padding:6px 8px; border-radius:8px; background:rgba(0,0,0,0.03); }
+
+  .book-btn{
+    margin-top:10px;
+    padding:8px 10px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:700;
+    font-size:13px;
+    width:100%;
+  }
+  .book-btn:active{ transform:translateY(1px); }
+
+  /* selection panel */
+  .panel{
+    display:grid;
+    grid-template-columns: 1fr 380px;
+    gap:18px;
+    margin-top:14px;
+  }
+  @media (max-width:940px){ .panel{ grid-template-columns: 1fr; } .arrow{ display:none; } }
+
+  .form-left{
+    padding:12px;
+  }
+
+  label{ display:block; font-weight:600; margin:12px 0 6px; color:#0f1724; font-size:13px; }
+  input[type="text"], input[type="date"], input[type="time"], textarea{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid #e6eefb; font-size:14px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  textarea{ min-height:96px; resize:vertical; }
+
+  .slot-container{ margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .slot{
+    padding:8px 10px; border-radius:10px; background:#fff; border:1px solid rgba(11,22,44,0.06);
+    cursor:pointer; font-size:13px; color:#123;
+    transition: transform 140ms, background 140ms, border 140ms;
+  }
+  .slot:hover{ transform:translateY(-4px); box-shadow:0 10px 20px rgba(15,23,42,0.06); }
+  .slot.selected{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .slot.disabled{ background:#f4f6f8; color:#99a3ad; cursor:not-allowed; border:1px dashed rgba(11,22,44,0.04); transform:none; box-shadow:none; }
+
+  .details-panel{
+    padding:14px; background:linear-gradient(180deg,#fbfdff,#ffffff); border-radius:12px; box-shadow:0 8px 20px rgba(15,23,42,0.04);
+    border:1px solid rgba(15,23,42,0.03);
+  }
+  .details-panel h3{ margin:6px 0 4px; font-size:16px; }
+  .details-panel p { margin:6px 0 0; color:var(--muted); font-size:13px; }
+
+  .btn{
+    display:inline-block; margin-top:12px; padding:11px 14px; border-radius:10px; background:var(--accent); color:#fff; border:none; cursor:pointer; font-weight:700;
+  }
+
+  .toll-free {
+    margin-top:10px;
+    display:inline-block;
+    background:linear-gradient(90deg,#fff,#f4f8ff);
+    padding:8px 12px;
+    border-radius:8px;
+    border:1px solid rgba(15,23,42,0.04);
+    font-weight:700;
+    color:var(--accent);
+  }
+
+  .note{ margin-top:10px; font-size:12px; color:var(--muted); }
+
+  /* small helpers */
+  .row { display:flex; gap:10px; }
+  .col { flex:1; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Book Psychiatrist Consultation</h1>
+    <p class="lead">Slide to choose a doctor — click <strong>Book Now</strong> to jump to the booking panel and pick a slot.</p>
+
+    <div class="slider-wrap">
+      <div class="arrow left" id="prevBtn" title="Scroll left">&#9664;</div>
+      <div class="arrow right" id="nextBtn" title="Scroll right">&#9654;</div>
+
+      <div class="doctor-track" id="doctorTrack" aria-label="Doctors carousel"></div>
+    </div>
+
+    <div class="panel">
+      <!-- left: booking form -->
+      <div class="form-left">
+        <form id="bookingForm">
+          <label for="name">Full name</label>
+          <input type="text" id="name" placeholder="Your full name" required>
+
+          <div class="row">
+            <div class="col">
+              <label for="phone">Phone number</label>
+              <input type="text" id="phone" placeholder="+91 98765 43210" required>
+            </div>
+            <div class="col">
+              <label for="date">Date</label>
+              <input type="date" id="date" required>
+            </div>
+          </div>
+
+          <label for="time">Time (select from slots below)</label>
+          <div id="slotArea" class="slot-container" aria-live="polite">
+            <div class="note">Select a doctor and date to view slots.</div>
+          </div>
+
+          <label for="message">Additional details</label>
+          <textarea id="message" placeholder="Symptoms, brief history, or what you'd like to discuss"></textarea>
+
+          <input type="hidden" id="selectedDoctor" required>
+          <input type="hidden" id="selectedSlot" required>
+
+          <div style="margin-top:12px;">
+            <button class="btn" type="submit">Confirm Booking</button>
+          </div>
+          <div class="note">Slots disabled if in the past (based on your local time).</div>
+        </form>
+      </div>
+
+      <!-- right: doctor details -->
+      <div class="details-panel" id="detailsPanel">
+        <h3 id="detailName">Select a doctor</h3>
+        <p id="detailSpec">Tap a doctor card and then press <strong>Book Now</strong> to start booking.</p>
+        <p id="detailFee"></p>
+        <p id="detailExp"></p>
+        <div class="toll-free" id="tollFree">Toll-Free: 1800-123-HELP (4357)</div>
+        <p class="note">For assistance call the Toll-Free number above.</p>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ---------- CONFIG: Toll-free ----------
+  const TOLL_FREE = '1800-123-HELP (4357)';
+
+  // ---------- DOCTORS DATA (10 doctors + unique slots) ----------
+  const doctors = [
+    { id:"D001", name:"Dr. A. Sharma", specialization:"Psychiatry", fee:"₹1000", exp:12, image:"https://randomuser.me/api/portraits/men/12.jpg", slots:["09:00","10:30","12:00","14:00","15:30","17:00"] },
+    { id:"D002", name:"Dr. N. Gupta", specialization:"Clinical Psychology", fee:"₹900", exp:9, image:"https://randomuser.me/api/portraits/women/21.jpg", slots:["08:30","10:00","11:30","13:00","16:00","18:00"] },
+    { id:"D003", name:"Dr. R. Menon", specialization:"Psychiatry", fee:"₹1200", exp:15, image:"https://randomuser.me/api/portraits/men/34.jpg", slots:["09:15","11:00","12:45","15:00","16:30"] },
+    { id:"D004", name:"Dr. S. Iyer", specialization:"Counseling", fee:"₹700", exp:6, image:"https://randomuser.me/api/portraits/women/44.jpg", slots:["09:00","10:00","11:00","14:30","17:30"] },
+    { id:"D005", name:"Dr. P. Das", specialization:"Psychiatry", fee:"₹1100", exp:13, image:"https://randomuser.me/api/portraits/men/52.jpg", slots:["08:00","09:30","11:30","13:30","15:00","16:00"] },
+    { id:"D006", name:"Dr. L. Singh", specialization:"Psychiatry", fee:"₹950", exp:8, image:"https://randomuser.me/api/portraits/women/63.jpg", slots:["09:00","10:00","12:30","14:00","16:00","18:30"] },
+    { id:"D007", name:"Dr. V. Nair", specialization:"Clinical Psychology", fee:"₹1050", exp:11, image:"https://randomuser.me/api/portraits/men/72.jpg", slots:["08:30","09:45","11:15","13:45","15:30","17:00"] },
+    { id:"D008", name:"Dr. K. Reddy", specialization:"Psychiatry", fee:"₹980", exp:10, image:"https://randomuser.me/api/portraits/women/81.jpg", slots:["09:20","10:40","12:00","14:20","16:40"] },
+    { id:"D009", name:"Dr. R. Verma", specialization:"Counseling", fee:"₹750", exp:5, image:"https://randomuser.me/api/portraits/men/85.jpg", slots:["09:00","10:00","12:00","15:00","17:00"] },
+    { id:"D010", name:"Dr. P. Kapoor", specialization:"Clinical Psychology", fee:"₹1150", exp:14, image:"https://randomuser.me/api/portraits/women/90.jpg", slots:["08:00","09:30","11:00","13:30","16:00","18:00"] }
+  ];
+
+  // ---------- UI references ----------
+  const doctorTrack = document.getElementById('doctorTrack');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const slotArea = document.getElementById('slotArea');
+  const dateInput = document.getElementById('date');
+  const selectedDoctorInput = document.getElementById('selectedDoctor');
+  const selectedSlotInput = document.getElementById('selectedSlot');
+
+  const detailName = document.getElementById('detailName');
+  const detailSpec = document.getElementById('detailSpec');
+  const detailFee = document.getElementById('detailFee');
+  const detailExp = document.getElementById('detailExp');
+  const tollFreeEl = document.getElementById('tollFree');
+
+  // set toll-free text
+  tollFreeEl.textContent = 'Toll-Free: ' + TOLL_FREE;
+
+  // initialize date min = today
+  (function setMinDate(){
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,'0');
+    const dd = String(today.getDate()).padStart(2,'0');
+    dateInput.min = `${yyyy}-${mm}-${dd}`;
+    dateInput.value = `${yyyy}-${mm}-${dd}`; // default to today
+  })();
+
+  // ---------- render doctor cards ----------
+  let selectedDoctorId = null;
+  doctors.forEach(doc => {
+    const card = document.createElement('div');
+    card.className = 'doctor-card';
+    card.dataset.id = doc.id;
+    card.innerHTML = `
+      <img class="doctor-avatar" src="${doc.image}" alt="${doc.name}">
+      <div class="doctor-name">${doc.name}</div>
+      <div class="doctor-spec">${doc.specialization}</div>
+      <div class="meta-row">
+        <div class="mini">${doc.exp} yrs</div>
+        <div class="mini">${doc.fee}</div>
+      </div>
+      <button class="book-btn" data-id="${doc.id}" aria-label="Book ${doc.name}">Book Now</button>
+    `;
+    doctorTrack.appendChild(card);
+
+    // click on card selects visually
+    card.addEventListener('click', (ev) => {
+      // avoid selecting card twice when clicking Book Now (book button will handle)
+      if(ev.target && ev.target.classList.contains('book-btn')) return;
+      selectDoctor(doc.id);
+    });
+
+    // Book Now handler
+    const btn = card.querySelector('.book-btn');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectDoctor(doc.id);
+      // scroll and focus booking area
+      document.querySelector('.panel').scrollIntoView({behavior:'smooth', block: 'center'});
+      // focus date input (so user can change if desired)
+      setTimeout(()=> dateInput.focus(), 450);
+    });
+  });
+
+  // slider arrows behavior
+  prevBtn.addEventListener('click', () => doctorTrack.scrollBy({left:-420, behavior:'smooth'}));
+  nextBtn.addEventListener('click', () => doctorTrack.scrollBy({left:420, behavior:'smooth'}));
+
+  // select first doctor by default
+  selectDoctor(doctors[0].id);
+
+  // when date changes recompute slots
+  dateInput.addEventListener('change', refreshSlots);
+
+  // ---------- functions ----------
+  function selectDoctor(id){
+    selectedDoctorId = id;
+    selectedDoctorInput.value = id;
+    // visual selection
+    document.querySelectorAll('.doctor-card').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
+    // update details panel
+    const doc = doctors.find(d => d.id === id);
+    detailName.textContent = doc.name;
+    detailSpec.textContent = doc.specialization;
+    detailFee.textContent = 'Consultation Fee: ' + doc.fee;
+    detailExp.textContent = 'Experience: ' + doc.exp + ' years';
+    // update slots
+    refreshSlots();
+    // ensure the selected card is scrolled into view a bit
+    const el = document.querySelector(`.doctor-card[data-id="${id}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  }
+
+  // refresh slots given selectedDoctorId and date
+  function refreshSlots(){
+    slotArea.innerHTML = ''; // clear
+    selectedSlotInput.value = ''; // clear selection
+    if(!selectedDoctorId){
+      slotArea.innerHTML = '<div class="note">Select a doctor to view slots.</div>';
+      return;
+    }
+    const doc = doctors.find(d => d.id === selectedDoctorId);
+    if(!doc){
+      slotArea.innerHTML = '<div class="note">Doctor not found.</div>';
+      return;
+    }
+
+    // today's date/time
+    const now = new Date();
+    // chosen date midnight:
+    const dateVal = dateInput.value;
+    if(!dateVal){
+      slotArea.innerHTML = '<div class="note">Pick a date to see available slots.</div>';
+      return;
+    }
+    const chosenDate = new Date(dateVal + 'T00:00:00'); // browser local timezone
+
+    // helper to parse slot time 'HH:MM' to Date on chosenDate
+    function slotToDate(slotStr){
+      const [h,m] = slotStr.split(':').map(s=>parseInt(s,10));
+      return new Date(chosenDate.getFullYear(), chosenDate.getMonth(), chosenDate.getDate(), h, m, 0);
+    }
+
+    const todayIsChosen = isSameDay(chosenDate, now);
+
+    doc.slots.forEach(slotStr => {
+      const slotDt = slotToDate(slotStr);
+      // disable if chosen date is before today or (is today and slotDt <= now)
+      let disabled = false;
+      if(chosenDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+        disabled = true;
+      } else if (todayIsChosen && slotDt <= now) {
+        disabled = true;
+      }
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'slot' + (disabled ? ' disabled' : '');
+      button.textContent = formatTime(slotStr);
+      if(!disabled){
+        button.addEventListener('click', () => {
+          // clear previous selection
+          document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+          button.classList.add('selected');
+          selectedSlotInput.value = slotStr;
+        });
+      }
+      slotArea.appendChild(button);
+    });
+
+    // hint if no available (all disabled)
+    const anyEnabled = !!slotArea.querySelector('.slot:not(.disabled)');
+    if(!anyEnabled){
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'No available slots for this date. Try another date or choose a different doctor.';
+      slotArea.appendChild(note);
+    }
+  }
+
+  function formatTime(hhmm){
+    // convert "HH:MM" -> "h:mm AM/PM"
+    const [h,m] = hhmm.split(':').map(x=>parseInt(x,10));
+    const ampm = h >= 12 ? 'PM':'AM';
+    const hour12 = ((h + 11) % 12) + 1;
+    return `${hour12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  function isSameDay(a,b){
+    return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+
+  // ---------- form submit ----------
+  document.getElementById('bookingForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const dateVal = document.getElementById('date').value;
+    const slot = selectedSlotInput.value;
+    const doc = doctors.find(d => d.id === selectedDoctorId);
+    const message = document.getElementById('message').value.trim();
+
+    // validation
+    if(!name || !phone || !dateVal || !selectedDoctorId || !slot){
+      alert('Please provide name, phone, choose a doctor, date and select an available slot.');
+      return;
+    }
+
+    // compose friendly confirmation
+    const displaySlot = formatTime(slot);
+    const displayDate = (new Date(dateVal + 'T00:00:00')).toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'});
+    const confirmation =
+`✅ Booking Confirmed (simulated)
+
+Patient: ${name}
+Doctor: ${doc.name} (${doc.specialization})
+Date: ${displayDate}
+Time: ${displaySlot}
+Phone: ${phone}
+Fee: ${doc.fee}
+
+For assistance call Toll-Free: ${TOLL_FREE}
+
+Details: ${message || '—'}`;
+
+    alert(confirmation);
+
+    // reset form (keeps doctor selected)
+    document.getElementById('bookingForm').reset();
+    // reset date to min (today)
+    (function resetDate(){
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth()+1).padStart(2,'0');
+      const dd = String(today.getDate()).padStart(2,'0');
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+    })();
+    selectedSlotInput.value = '';
+    // refresh slots to disable past ones
+    refreshSlots();
+  });
+</script>
+</body>
+</html>

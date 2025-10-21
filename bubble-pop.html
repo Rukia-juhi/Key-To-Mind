@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>💧Bubble Pop</title>
+<style>
+  /* 🌅 Background gradient animation */
+  body {
+    font-family: 'Poppins', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: linear-gradient(135deg, #a1c4fd, #c2e9fb, #f9d1d1, #fad0c4);
+    background-size: 400% 400%;
+    animation: gradientBG 20s ease infinite;
+    height: 100vh;
+  }
+
+  @keyframes gradientBG {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+  }
+
+  h1 {
+    margin: 16px 0 6px;
+    color: #3b2e5a;
+    text-shadow: 1px 1px 5px rgba(0,0,0,0.2);
+  }
+
+  p {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    color: #3b2e5a;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  button {
+    margin: 10px 0 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background: #9c27b0;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: #6a1b9a;
+    transform: scale(1.05);
+  }
+
+  /* 🌟 Bubble styles */
+  .bubble {
+    position: absolute;
+    bottom: -120px; /* start just below the viewport */
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff80ab, #ff4081);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    cursor: pointer;
+    animation: floatUp linear forwards;
+    opacity: 0.85;
+    transition: transform 0.2s, opacity 0.3s;
+    will-change: transform;
+  }
+
+  .bubble:hover {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  @keyframes floatUp {
+    0%   { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(-110vh) rotate(360deg); }
+  }
+
+  /* Keep header/buttons above bubbles on small screens */
+  header, .controls { position: relative; z-index: 2; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>💧 Bubble Pop</h1>
+    <p>Click the bubbles to pop them and relax 🎈</p>
+  </header>
+
+  <div class="controls">
+    <button onclick="restart()">Restart</button>
+  </div>
+
+<script>
+  const COLORS = [
+    ['#ff9a9e', '#fad0c4'],
+    ['#a18cd1', '#fbc2eb'],
+    ['#fbc2eb', '#a6c1ee'],
+    ['#fddb92', '#d1fdff'],
+    ['#a1c4fd', '#c2e9fb']
+  ];
+
+  let spawnTimer;
+
+  function createBubble(){
+    const bubble = document.createElement('div');
+    bubble.classList.add('bubble');
+
+    // Random size
+    const size = 30 + Math.random() * 60; // 30–90px
+    bubble.style.width = bubble.style.height = size + 'px';
+
+    // Random horizontal position (avoid clipping)
+    const maxLeft = Math.max(0, window.innerWidth - size);
+    bubble.style.left = Math.floor(Math.random() * maxLeft) + 'px';
+
+    // Random gradient colors (FIXED: use backticks)
+    const [c1, c2] = COLORS[Math.floor(Math.random() * COLORS.length)];
+    bubble.style.background = `radial-gradient(circle at 30% 30%, ${c1}, ${c2})`;
+
+    // Random speed & delay
+    const duration = 6 + Math.random() * 6; // 6–12s
+    const delay = Math.random() * 1.2;      // 0–1.2s
+    bubble.style.animationDuration = `${duration}s`;
+    bubble.style.animationDelay = `${delay}s`;
+
+    // Remove on click (pop)
+    bubble.addEventListener('click', () => {
+      bubble.remove();
+    });
+
+    // Auto remove after it floats away
+    const maxLife = (duration + delay) * 1000 + 500;
+    setTimeout(() => { bubble.remove(); }, maxLife);
+
+    document.body.appendChild(bubble);
+  }
+
+  function start(){
+    // spawn a few immediately
+    for (let i = 0; i < 6; i++) createBubble();
+    // then keep spawning
+    spawnTimer = setInterval(createBubble, 500);
+  }
+
+  function restart(){
+    // remove all bubbles
+    document.querySelectorAll('.bubble').forEach(b => b.remove());
+    // reset interval
+    clearInterval(spawnTimer);
+    start();
+  }
+
+  // start on load
+  start();
+
+  // keep layout safe on resize
+  window.addEventListener('resize', () => {
+    // no need to reposition existing bubbles; new ones will fit
+  });
+</script>
+</body>
+</html>

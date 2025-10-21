@@ -1,0 +1,11 @@
+{
+	"deployment": {
+		"name": "key_to_mind_function",
+		"stack": "node20",
+		"type": "basicio",
+		"env_variables": {}
+	},
+	"execution": {
+		"main": "index.js"
+	}
+}

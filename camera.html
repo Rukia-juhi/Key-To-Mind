@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Key To Mind Chatbot</title>
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #c2e9fb, #1d1d64, #f9d1d1);
+  background-size: 400% 400%;
+  animation: gradientMove 15s ease infinite;
+  margin: 0;
+  padding: 0;
+}
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+h1 {
+  margin-top: 20px;
+  color: #3b2e5a;
+  text-align: center;
+}
+#chatContainer {
+  width: 90%;
+  max-width: 500px;
+  height: 450px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 20px;
+  overflow-y: auto;
+  padding: 15px;
+  margin-top: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+.message {
+  margin: 10px 0;
+  padding: 10px 15px;
+  border-radius: 15px;
+  max-width: 80%;
+}
+.user { background: #a9a0ee; color: #fff; margin-left: auto; }
+.bot { background: #3b2e5a; color: #fff; margin-right: auto; }
+#inputContainer {
+  display: flex;
+  width: 90%;
+  max-width: 500px;
+  margin-top: 10px;
+}
+#userInput {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px 0 0 12px;
+  border: none;
+  outline: none;
+}
+#sendBtn {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 0 12px 12px 0;
+  background: #9c27b0;
+  color: white;
+  cursor: pointer;
+}
+#videoContainer {
+  margin-top: 20px;
+  position: relative;
+}
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+#emotionDisplay {
+  margin-top: 10px;
+  font-size: 1.2rem;
+  color: #1d165f;
+  font-weight: bold;
+}
+#homeBtn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
+  color: #1d165f;
+  border: none;
+  border-radius: 30px;
+  padding: 10px 18px;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: 0.3s;
+}
+#homeBtn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+}
+</style>
+</head>
+<body>
+
+<!-- 🏠 Back to home button -->
+<button id="homeBtn" onclick="window.location.href='index.html'">🏠 Home</button>
+
+<h1>🧠 Key To Mind Chatbot</h1>
+
+<div id="videoContainer">
+  <video id="video" width="400" height="300" autoplay muted></video>
+</div>
+<div id="emotionDisplay">Detecting emotion...</div>
+
+<div id="chatContainer"></div>
+
+<div id="inputContainer">
+  <input type="text" id="userInput" placeholder="Type your message..." />
+  <button id="sendBtn">Send</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+<script>
+const chatContainer = document.getElementById('chatContainer');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const video = document.getElementById('video');
+const emotionDisplay = document.getElementById('emotionDisplay');
+
+let lastEmotion = null;
+let chatStarted = false;
+let greeted = false;
+
+// Load face-api models
+async function loadModels() {
+  await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/');
+  await faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/');
+}
+
+// Start webcam
+async function startVideo() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    video.srcObject = stream;
+  } catch (err) {
+    alert("Camera access denied. Please allow it in browser settings.");
+  }
+}
+
+// Detect dominant emotion
+function getDominantExpression(expressions){
+  return Object.entries(expressions).sort((a,b)=>b[1]-a[1])[0][0];
+}
+
+// Display messages
+function displayUserMessage(msg){
+  const div = document.createElement('div');
+  div.classList.add('message','user');
+  div.innerText = msg;
+  chatContainer.appendChild(div);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+function displayBotMessage(msg){
+  const div = document.createElement('div');
+  div.classList.add('message','bot');
+  div.innerText = msg;
+  chatContainer.appendChild(div);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// Suggest mini-games based on mood
+function suggestMiniGame(emotion){
+  switch(emotion){
+    case 'happy': return "🎨 Try the Doodle Pad or Snake Zen to stay in your flow!";
+    case 'sad': return "🧩 Try Memory Match—it’s soothing and fun!";
+    case 'angry': return "💧 Bubble Pop can help you let off steam.";
+    case 'fearful': return "🌿 Do a few deep breaths or explore Box Breathing.";
+    case 'surprised': return "🎮 Snake Zen might help you refocus!";
+    default: return "🎮 Explore any game from your Key To Mind dashboard!";
+  }
+}
+
+// Recommend calming techniques
+function recommendCalm(emotion){
+  switch(emotion){
+    case 'happy': return "Keep smiling! 😊 Take a deep breath and enjoy the moment.";
+    case 'sad': return "Try inhaling deeply for 4 seconds, hold for 4, exhale for 4 🌬.";
+    case 'angry': return "Clench and release your fists slowly, and take 3 deep breaths.";
+    case 'fearful': return "Visualize a peaceful place and take slow breaths 🌿.";
+    case 'surprised': return "Take a moment to relax and breathe deeply.";
+    default: return "Take a slow deep breath to relax.";
+  }
+}
+
+// Generate bot message
+function generateBotMessage(userMsg){
+  if(!userMsg){ 
+    // Start with greeting
+    if(!greeted){
+      greeted = true;
+      return "Hello! 👋 I'm Key To Mind, your personal wellness assistant. How are you feeling today?";
+    } else {
+      // Then suggest games/calming based on emotion
+      return `${suggestMiniGame(lastEmotion)}\n${recommendCalm(lastEmotion)}`;
+    }
+  } else {
+    const msg = userMsg.toLowerCase();
+    if(msg.includes('sad')) return "It's okay to feel sad 🌸. " + recommendCalm('sad');
+    if(msg.includes('happy')) return "Yay! 😄 Keep enjoying! " + recommendCalm('happy');
+    if(msg.includes('angry')) return "I understand. " + recommendCalm('angry');
+    if(msg.includes('fear')) return recommendCalm('fearful');
+    return "I see. Can you tell me more about how you feel?";
+  }
+}
+
+// Send user message
+sendBtn.addEventListener('click', ()=>{
+  const msg = userInput.value.trim();
+  if(msg){
+    displayUserMessage(msg);
+    userInput.value = '';
+    displayBotMessage(generateBotMessage(msg));
+  }
+});
+
+// Emotion detection + chatbot start
+video.addEventListener('play', () => {
+  const canvas = faceapi.createCanvasFromMedia(video);
+  document.getElementById('videoContainer').appendChild(canvas);
+  const displaySize = { width: video.width, height: video.height };
+  faceapi.matchDimensions(canvas, displaySize);
+
+  setInterval(async () => {
+    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+
+    if(detection){
+      const resized = faceapi.resizeResults(detection, displaySize);
+      faceapi.draw.drawDetections(canvas, resized);
+      faceapi.draw.drawFaceExpressions(canvas, resized);
+
+      const dominantEmotion = getDominantExpression(detection.expressions);
+      emotionDisplay.innerText = `Detected Emotion: ${dominantEmotion.toUpperCase()}`;
+
+      if(dominantEmotion !== lastEmotion){
+        lastEmotion = dominantEmotion;
+        if(!chatStarted){
+          displayBotMessage(generateBotMessage());
+          chatStarted = true;
+        }
+      }
+    } else {
+      emotionDisplay.innerText = "No face detected";
+    }
+  }, 1000);
+});
+
+// Initialize
+loadModels().then(startVideo);
+</script>
+</body>
+</html>

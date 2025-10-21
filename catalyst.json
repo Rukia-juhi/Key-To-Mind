@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "targets": [
+      "key_to_mind_function"
+    ],
+    "ignore": [],
+    "source": "functions"
+  },
+  "client": {
+    "source": "client"
+  }
+}
